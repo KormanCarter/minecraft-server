@@ -8,12 +8,18 @@ Instructions for AI coding agents and human contributors working in this workspa
 
 | Field | Value |
 |-------|-------|
-| **Repo** | OpenSpec (Fission-AI) |
-| **Stack** | TypeScript (core), PHP (demo pages) |
-| **Custom page** | `impact_hub.php` — VoxelCraft Block Builder Game |
-| **Platform** | Windows (PowerShell), PHP 8.3 via winget |
+| **Repo** | [minecraft-server](https://github.com/KormanCarter/minecraft-server) |
+| **Stack** | PHP 8.x · MySQL 8.x · Apache2 · HTML/CSS/JS |
+| **Main App** | `app/index.php` — Student Notes (PHP + MySQL CRUD) |
+| **Bonus** | `impact_hub.php` — VoxelCraft Block Builder Game |
+| **Hosting** | Apache2 virtual host on port **8080** (Debian/Ubuntu) |
+| **Platform** | Windows (dev), Linux/Debian (production) |
 
-OpenSpec is a specification toolkit. The `impact_hub.php` file is a standalone demo page added locally to showcase a creative, real-world single-file PHP application (Minecraft-style isometric voxel building game with a visible player character, walking animation, terrain generation, block placement/breaking, inventory, and day/night cycle).
+### Student Notes Application
+`app/index.php` is a single-page PHP + MySQL application with full CRUD (Create, Read, Update, Delete). Features: note creation form, search, priority filters, stats dashboard, dark-mode responsive UI. Data stored in a `student_notes` MySQL database.
+
+### VoxelCraft Game
+`impact_hub.php` is a standalone Minecraft-style isometric voxel building game with player character, mobs, combat system, inventory hotbar with diamond sword, and day/night cycle.
 
 ---
 
@@ -58,9 +64,14 @@ Then open **http://localhost:8000/impact_hub.php** in a browser.
 
 | File | Type | Notes |
 |------|------|-------|
-| `impact_hub.php` | PHP + HTML + CSS + JS | VoxelCraft game. Self-contained single page. Do not split unless asked. |
+| `app/index.php` | PHP + HTML + CSS | Student Notes CRUD app. Main deliverable. |
+| `database/setup.sql` | SQL | MySQL schema, user, sample data. Run before first use. |
+| `config/studentnotes.conf` | Apache conf | Virtual host for port 8080. Copy to `/etc/apache2/sites-available/`. |
+| `docs/DEPLOYMENT.md` | Markdown | Full deployment guide (Apache, MySQL, DNS, firewall). |
+| `docs/AI_PROMPTS.md` | Markdown | All AI prompts used during development. |
+| `impact_hub.php` | PHP + HTML + CSS + JS | VoxelCraft game. Self-contained single page. |
 | `AGENTS.md` | Markdown | This file — agent/contributor guidance. |
-| `src/`, `schemas/`, `docs/` | TypeScript / JSON / MD | Core OpenSpec project files. Treat as read-only unless the task explicitly targets them. |
+| `src/`, `schemas/`, `docs/` (OpenSpec) | TS / JSON / MD | Original OpenSpec project files. Treat as read-only. |
 
 ---
 
