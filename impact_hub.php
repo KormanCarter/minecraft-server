@@ -5,6 +5,38 @@ declare(strict_types=1);
 // Place blocks, break blocks, switch materials, explore the world.
 $version = '1.0.0';
 $seed = isset($_GET['seed']) ? (int)$_GET['seed'] : mt_rand(1000, 9999);
+
+// ── MySQL Connection (user profile) ─────────────────────
+$db_host = 'localhost';
+$db_user = 'notes_user';
+$db_pass = 'SecurePass123!';
+$db_name = 'student_notes';
+$playerName = 'Steve'; // default fallback
+$nameMsg = '';
+
+$db = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+if (!$db->connect_error) {
+    $db->set_charset('utf8mb4');
+
+    // Handle name change POST
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['voxel_action']) && $_POST['voxel_action'] === 'update_name') {
+        $newName = trim($_POST['player_name'] ?? '');
+        if ($newName !== '' && mb_strlen($newName) <= 20) {
+            $stmt = $db->prepare("UPDATE user_profile SET display_name=? WHERE id=1");
+            $stmt->bind_param('s', $newName);
+            $stmt->execute();
+            $stmt->close();
+            $nameMsg = 'Name saved!';
+        }
+    }
+
+    // Load current name
+    $res = $db->query("SELECT display_name FROM user_profile WHERE id=1");
+    if ($res && $row = $res->fetch_assoc()) {
+        $playerName = $row['display_name'];
+    }
+    $db->close();
+}
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -181,12 +213,178 @@ $seed = isset($_GET['seed']) ? (int)$_GET['seed'] : mt_rand(1000, 9999);
     font-family: 'Consolas', monospace;
     z-index: 10;
   }
+
+  /* ── Player Name Tag ──────────────────────── */
+  .player-tag {
+    position: fixed;
+    top: 12px; right: 120px;
+    background: rgba(0,0,0,0.6);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #5eead4;
+    font-weight: 700;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(94,234,212,0.2);
+    backdrop-filter: blur(6px);
+  }
+
+  .player-tag .edit-name-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #e2e8f0;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .player-tag .edit-name-btn:hover {
+    background: rgba(94,234,212,0.2);
+    border-color: #5eead4;
+  }
+
+  /* ── Name Modal ───────────────────────────── */
+  .name-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .name-modal {
+    background: #1e293b;
+    border: 2px solid rgba(94,234,212,0.3);
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 360px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+
+  .name-modal h3 {
+    color: #e2e8f0;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+  }
+
+  .name-modal input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    background: #0f172a;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-family: inherit;
+    margin-bottom: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .name-modal input[type="text"]:focus {
+    border-color: #5eead4;
+    box-shadow: 0 0 0 3px rgba(94,234,212,0.15);
+  }
+
+  .name-modal .modal-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .name-modal .modal-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .name-modal .btn-save {
+    background: linear-gradient(135deg, #06b6d4, #5eead4);
+    color: #0f172a;
+  }
+
+  .name-modal .btn-save:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(94,234,212,0.3);
+  }
+
+  .name-modal .btn-cancel {
+    background: #334155;
+    color: #94a3b8;
+    border: 1px solid #475569;
+  }
+
+  .name-modal .btn-cancel:hover {
+    border-color: #5eead4;
+  }
+
+  .name-saved-toast {
+    position: fixed;
+    top: 50px; right: 12px;
+    background: rgba(34,197,94,0.2);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.3);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 100;
+    animation: toastFade 2.5s ease forwards;
+  }
+
+  @keyframes toastFade {
+    0%   { opacity: 0; transform: translateY(-10px); }
+    15%  { opacity: 1; transform: translateY(0); }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
 </style>
 </head>
 <body>
 
 <canvas id="game"></canvas>
 <div class="crosshair"></div>
+
+<!-- ── Player Name Tag ────────────────── -->
+<div class="player-tag">
+    ⛏️ <span id="playerNameDisplay"><?= htmlspecialchars($playerName) ?></span>
+    <button class="edit-name-btn" onclick="openNameModal()" title="Change player name">✏️ Edit</button>
+</div>
+
+<!-- ── Name Change Modal ─────────────── -->
+<div class="name-modal-overlay" id="nameModalOverlay">
+    <div class="name-modal">
+        <h3>⛏️ Change Player Name</h3>
+        <form method="POST" action="impact_hub.php?seed=<?= $seed ?>">
+            <input type="hidden" name="voxel_action" value="update_name">
+            <input type="text" name="player_name" id="nameInput" required maxlength="20"
+                   value="<?= htmlspecialchars($playerName) ?>"
+                   placeholder="Enter your name (max 20 chars)">
+            <div class="modal-btns">
+                <button type="button" class="modal-btn btn-cancel" onclick="closeNameModal()">Cancel</button>
+                <button type="submit" class="modal-btn btn-save">💾 Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<?php if ($nameMsg): ?>
+<div class="name-saved-toast"><?= htmlspecialchars($nameMsg) ?></div>
+<?php endif; ?>
 
 <div class="info">
   <div class="title">VoxelCraft</div>
@@ -1316,8 +1514,34 @@ function buildHotbar() {
   });
 }
 
+// ── Name Modal Controls ─────────────────────
+let nameModalOpen = false;
+
+function openNameModal() {
+  document.getElementById('nameModalOverlay').style.display = 'flex';
+  document.getElementById('nameInput').focus();
+  document.getElementById('nameInput').select();
+  nameModalOpen = true;
+}
+
+function closeNameModal() {
+  document.getElementById('nameModalOverlay').style.display = 'none';
+  nameModalOpen = false;
+  canvas.focus();
+}
+
+// Close modal on Escape or clicking outside
+document.getElementById('nameModalOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('nameModalOverlay')) closeNameModal();
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && nameModalOpen) closeNameModal();
+});
+
 // ── Input Handling ──────────────────────────
 canvas.addEventListener('mousedown', (e) => {
+  if (nameModalOpen) return;
   e.preventDefault();
   if (e.button === 0) placeBlock(e.clientX, e.clientY);       // Left = place
   if (e.button === 2) breakBlock(e.clientX, e.clientY);       // Right = break
@@ -1331,6 +1555,7 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 window.addEventListener('keydown', (e) => {
+  if (nameModalOpen) return;
   keys[e.key.toLowerCase()] = true;
 
   // Number keys 1-9
