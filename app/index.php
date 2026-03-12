@@ -25,10 +25,38 @@ if ($conn->connect_error) {
 }
 $conn->set_charset('utf8mb4');
 
+// ── Load User Profile ───────────────────────────
+$profileResult = $conn->query("SELECT display_name FROM user_profile WHERE id=1");
+$userName = 'Student';
+if ($profileResult && $row = $profileResult->fetch_assoc()) {
+    $userName = $row['display_name'];
+}
+
 // ── Handle Form Submissions (CRUD) ─────────────
 $message = '';
 $messageType = '';
 $editNote = null;
+
+// UPDATE USER NAME
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_name') {
+    $newName = trim($_POST['display_name'] ?? '');
+    if ($newName) {
+        $stmt = $conn->prepare("UPDATE user_profile SET display_name=? WHERE id=1");
+        $stmt->bind_param('s', $newName);
+        if ($stmt->execute()) {
+            $userName = $newName;
+            $message = 'Name updated to "' . htmlspecialchars($newName) . '"!';
+            $messageType = 'success';
+        } else {
+            $message = 'Error updating name.';
+            $messageType = 'error';
+        }
+        $stmt->close();
+    } else {
+        $message = 'Name cannot be empty.';
+        $messageType = 'error';
+    }
+}
 
 // CREATE — Insert new note
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -562,8 +590,42 @@ body {
         <h1>📝 Student Notes</h1>
         <div class="subtitle">PHP + MySQL CRUD Application &middot; Korman Carter</div>
     </div>
-    <div style="color:var(--text-dim); font-size:0.8rem;">
-        <?= date('l, F j, Y — g:i A') ?>
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+        <div style="text-align:right;">
+            <div style="color:var(--text); font-weight:600; font-size:0.95rem;" id="userGreeting">
+                👋 Hello, <?= htmlspecialchars($userName) ?>!
+            </div>
+            <div style="color:var(--text-dim); font-size:0.75rem;">
+                <?= date('l, F j, Y — g:i A') ?>
+            </div>
+        </div>
+        <button onclick="document.getElementById('nameModal').style.display='flex'"
+                style="background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:0.4rem 0.8rem; cursor:pointer; font-size:0.8rem; transition:border-color 0.2s;"
+                onmouseover="this.style.borderColor='var(--accent)'"
+                onmouseout="this.style.borderColor='var(--border)'"
+                title="Change your name">✏️ Edit Name</button>
+    </div>
+</div>
+
+<!-- ── Name Change Modal ─────────────────── -->
+<div id="nameModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:2rem; width:90%; max-width:400px; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <h3 style="margin-bottom:1rem; font-size:1.1rem;">✏️ Change Your Name</h3>
+        <form method="POST" action="index.php">
+            <input type="hidden" name="action" value="update_name">
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; font-size:0.8rem; color:var(--text-dim); margin-bottom:0.3rem; text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Display Name</label>
+                <input type="text" name="display_name" required maxlength="100"
+                       value="<?= htmlspecialchars($userName) ?>"
+                       style="width:100%; padding:0.7rem 0.9rem; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.95rem; font-family:inherit;"
+                       placeholder="Enter your name">
+            </div>
+            <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+                <button type="button" onclick="document.getElementById('nameModal').style.display='none'"
+                        class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Save Name</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -713,7 +775,7 @@ body {
 
 <!-- ── Footer ────────────────────────────── -->
 <div class="footer">
-    Student Notes App &middot; Built with PHP <?= PHP_VERSION ?> + MySQL &middot; Korman Carter &middot; <?= date('Y') ?>
+    Student Notes App &middot; Built with PHP <?= PHP_VERSION ?> + MySQL &middot; <?= htmlspecialchars($userName) ?> &middot; <?= date('Y') ?>
 </div>
 
 </body>

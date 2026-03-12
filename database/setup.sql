@@ -20,7 +20,18 @@ FLUSH PRIVILEGES;
 -- 4. Switch to the database
 USE student_notes;
 
--- 5. Create the notes table
+-- 5. Create the user profile table (stores the user's display name)
+CREATE TABLE IF NOT EXISTS user_profile (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    display_name VARCHAR(100) NOT NULL DEFAULT 'Student',
+    updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Insert default profile row
+INSERT INTO user_profile (id, display_name) VALUES (1, 'Student')
+    ON DUPLICATE KEY UPDATE id=id;
+
+-- 6. Create the notes table
 CREATE TABLE IF NOT EXISTS notes (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     title      VARCHAR(255)  NOT NULL,
@@ -34,7 +45,7 @@ CREATE TABLE IF NOT EXISTS notes (
     FULLTEXT INDEX idx_search (title, subject, content)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 6. Insert sample data so the app isn't empty on first load
+-- 7. Insert sample data so the app isn't empty on first load
 INSERT INTO notes (title, subject, content, priority) VALUES
 ('Welcome to Student Notes', 'General',
  'This is your Student Notes application. You can create, read, update, and delete notes.\n\nFeatures:\n- Full CRUD operations\n- Search across all notes\n- Filter by priority\n- Responsive dark-mode UI',
